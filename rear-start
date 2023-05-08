@@ -1,0 +1,24 @@
+---
+- name: Start of ReaR backup
+  hosts: backup
+  become: "yes"
+  vars:
+    backup_target_host: "10.6.113.90"
+    backup_target_path: "/data/rear-backups"
+    backup_exclude: '"/data"'
+
+  tasks:
+
+    - name: Stop puppet agent
+      ansible.builtin.command: /opt/puppetlabs/bin/puppet agent --disable
+
+    - name: Pause for 5 minutes to build app cache
+      ansible.builtin.pause:
+        minutes: 5
+
+    - name: Create ReaR backup
+      ansible.builtin.command: /usr/sbin/rear -v -d mkbackup
+      register: rear_output
+
+    - name: Start puppet agent
+      ansible.builtin.command: /opt/puppetlabs/bin/puppet agent --enable
