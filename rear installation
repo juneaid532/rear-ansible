@@ -1,0 +1,39 @@
+---
+- name: Installation of ReaR backup
+  hosts: all
+  become: "yes"
+  vars:
+    yum_name: "rear,genisoimage,syslinux,nfs-utils,grub2-efi-x64,grub2-efi-x64-modules"
+    yum_state: latest
+    yum_enablerepo: "base,extras,updates,epel"
+    yum_disablerepo: "*"
+    config_path: /etc/rear/local.conf
+    backup_target_host: "<IP-REARSERVER>"
+    backup_target_path: "/data/rear-backups"
+    backup_exclude: '"/data"'
+
+  tasks:
+    - name: Install ReaR
+      yum:
+        name={{ yum_name }}
+        state={{ yum_state }}
+        disablerepo={{ yum_disablerepo }}
+        enablerepo={{ yum_enablerepo }}
+      register: yumcommandout
+
+    - name: Print yum output
+      debug: msg={{ yumcommandout.results }}
+
+    - name: ReaR configuration
+      blockinfile:
+        path: "{{ config_path }}"
+        block: |
+          OUTPUT=ISO
+          OUTPUT_URL=nfs://{{ backup_target_host }}{{ backup_target_path }}
+          BACKUP=NETFS
+          BACKUP_URL=nfs://{{ backup_target_host }}{{ backup_target_path }}
+          BACKUP_PROG_EXCLUDE=("${BACKUP_PROG_EXCLUDE[@]}" '/var/tmp' '/var/crash' {{ backup_exclude }} )
+          BACKUP_TYPE=incremental
+          FULLBACKUPDAY="Sun"
+          RETENTION_TIME="WEEK"
+          KEEP_BUILD_DIR="n"
